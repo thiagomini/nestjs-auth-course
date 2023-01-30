@@ -9,8 +9,8 @@ import {
 } from '@nestjs/common';
 import { ActiveUser } from '../iam/authentication/decorators/active-user.decorator';
 import { ActiveUserData } from '../iam/authentication/interfaces/active-user-data.interface';
-import { Roles } from '../iam/authorization/decorators/roles.decorator';
-import { Role } from '../users/enums/roles.enum';
+import { Policies } from '../iam/authorization/decorators/policies.decorator';
+import { FrameworkContributorPolicy } from '../iam/authorization/policies/framework-contributor.policy';
 import { CoffeesService } from './coffees.service';
 import { CreateCoffeeDto } from './dto/create-coffee.dto';
 import { UpdateCoffeeDto } from './dto/update-coffee.dto';
@@ -19,7 +19,7 @@ import { UpdateCoffeeDto } from './dto/update-coffee.dto';
 export class CoffeesController {
   constructor(private readonly coffeesService: CoffeesService) {}
 
-  @Roles(Role.Admin)
+  @Policies(new FrameworkContributorPolicy())
   @Post()
   create(@Body() createCoffeeDto: CreateCoffeeDto) {
     return this.coffeesService.create(createCoffeeDto);
