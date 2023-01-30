@@ -28,7 +28,6 @@ export class AccessTokenGuard implements CanActivate {
         secret: this.jwtConfiguration.secret,
       });
       request[REQUEST_USER_KEY] = payload;
-      console.log(payload);
     } catch (error) {
       throw new UnauthorizedException();
     }
