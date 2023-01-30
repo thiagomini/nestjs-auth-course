@@ -14,6 +14,7 @@ import { SignInDto } from './dto/sign-in.dto';
 import { SignUpDto } from './dto/sign-up.dto';
 import jwtConfig from '../config/jwt.config';
 import { ActiveUserData } from './interfaces/active-user-data.interface';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Injectable()
 export class AuthenticationService {
@@ -25,60 +26,73 @@ export class AuthenticationService {
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
   ) {}
 
-  public async signUp(signUpDto: SignUpDto) {
+  async signUp(signUpDto: SignUpDto) {
     try {
       const user = new User();
       user.email = signUpDto.email;
       user.password = await this.hashingService.hash(signUpDto.password);
-      return await this.usersRepository.save(user);
-    } catch (error) {
+
+      await this.usersRepository.save(user);
+    } catch (err) {
       const pgUniqueViolationErrorCode = '23505';
-      if (error.code === pgUniqueViolationErrorCode) {
-        throw new ConflictException('Email already exists');
+      if (err.code === pgUniqueViolationErrorCode) {
+        throw new ConflictException();
       }
-      throw error;
+      throw err;
     }
   }
 
-  public async signIn(signInDto: SignInDto) {
+  async signIn(signInDto: SignInDto) {
     const user = await this.usersRepository.findOneBy({
       email: signInDto.email,
     });
-
     if (!user) {
-      throw new UnauthorizedException('User does not exist');
+      throw new UnauthorizedException('User does not exists');
     }
-
-    const isPasswordValid = await this.hashingService.compare(
+    const isEqual = await this.hashingService.compare(
       signInDto.password,
       user.password,
     );
-
-    if (!isPasswordValid) {
+    if (!isEqual) {
       throw new UnauthorizedException('Password does not match');
     }
+    return await this.generateTokens(user);
+  }
 
+  async generateTokens(user: User) {
     const [accessToken, refreshToken] = await Promise.all([
       this.signToken<Partial<ActiveUserData>>(
         user.id,
         this.jwtConfiguration.accessTokenTtl,
         { email: user.email },
       ),
-      this.signToken<Partial<ActiveUserData>>(
-        user.id,
-        this.jwtConfiguration.refreshTokenTtl,
-        { email: user.email },
-      ),
+      this.signToken(user.id, this.jwtConfiguration.refreshTokenTtl),
     ]);
-
-    return { accessToken, refreshToken };
+    return {
+      accessToken,
+      refreshToken,
+    };
   }
 
-  private async signToken<TPayload>(
-    userId: number,
-    expiresIn: number,
-    payload?: TPayload,
-  ) {
+  async refreshTokens(refreshTokenDto: RefreshTokenDto) {
+    try {
+      const { sub } = await this.jwtService.verifyAsync<
+        Pick<ActiveUserData, 'sub'>
+      >(refreshTokenDto.refreshToken, {
+        secret: this.jwtConfiguration.secret,
+        audience: this.jwtConfiguration.audience,
+        issuer: this.jwtConfiguration.issuer,
+      });
+      const user = await this.usersRepository.findOneByOrFail({
+        id: sub,
+      });
+      return this.generateTokens(user);
+    } catch (err) {
+      throw new UnauthorizedException();
+    }
+  }
+
+  private async signToken<T>(userId: number, expiresIn: number, payload?: T) {
     return await this.jwtService.signAsync(
       {
         sub: userId,
@@ -88,7 +102,7 @@ export class AuthenticationService {
         audience: this.jwtConfiguration.audience,
         issuer: this.jwtConfiguration.issuer,
         secret: this.jwtConfiguration.secret,
-        expiresIn: this.jwtConfiguration.accessTokenTtl,
+        expiresIn,
       },
     );
   }
