@@ -11,8 +11,6 @@ import { ActiveUser } from '../iam/authentication/decorators/active-user.decorat
 import { Auth } from '../iam/authentication/decorators/auth.decorator';
 import { AuthType } from '../iam/authentication/enums/auth-type.enum';
 import { ActiveUserData } from '../iam/authentication/interfaces/active-user-data.interface';
-import { Policies } from '../iam/authorization/decorators/policies.decorator';
-import { FrameworkContributorPolicy } from '../iam/authorization/policies/framework-contributor.policy';
 import { CoffeesService } from './coffees.service';
 import { CreateCoffeeDto } from './dto/create-coffee.dto';
 import { UpdateCoffeeDto } from './dto/update-coffee.dto';

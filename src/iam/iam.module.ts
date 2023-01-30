@@ -19,6 +19,8 @@ import { PolicyHandlerStorage } from './authorization/policies/policy-handlers.s
 import jwtConfig from './config/jwt.config';
 import { BcryptService } from './hashing/bcrypt.service';
 import { HashingService } from './hashing/hashing.service';
+import { GoogleAuthenticationService } from './authentication/social/google-authentication.service';
+import { GoogleAuthenticationController } from './authentication/social/google-authentication.controller';
 
 @Module({
   imports: [
@@ -50,7 +52,8 @@ import { HashingService } from './hashing/hashing.service';
     PolicyHandlerStorage,
     ApiKeyGuard,
     ApiKeysService,
+    GoogleAuthenticationService,
   ],
-  controllers: [AuthenticationController],
+  controllers: [AuthenticationController, GoogleAuthenticationController],
 })
 export class IamModule {}
